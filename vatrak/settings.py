@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-1=j6+w_9tx!#+_8@ceq7)fh112!a0cf%w%6kks9@!4@+vz#ez(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["94d4-178-233-173-130.ngrok-free.app"]
+ALLOWED_HOSTS = ["dc27-178-233-173-130.ngrok-free.app"]
 
 
 # Application definition
@@ -39,7 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'Product.apps.ProductConfig'
+    'Product.apps.ProductConfig',
+    'Order.apps.OrderConfig',
+    'Cart.apps.CartConfig',
+    'Device.apps.DeviceConfig',
+    'Report.apps.ReportConfig'
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True

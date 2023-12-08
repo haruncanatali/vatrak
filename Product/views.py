@@ -1,15 +1,13 @@
-from rest_framework.parsers import JSONParser
 from django.http.response import JsonResponse
 from django.views import View
 import json
 
-
 from Product.models import Products
 from Product.serializers import ProductSerializer
+from Cart.models import Carts
 
 
 class ProductApiHandler(View):
-
     def get(self, request, product_id):
         response = {'product': {}, 'success': False}
         product = Products.objects.filter(id=product_id).first()
@@ -45,6 +43,32 @@ class ProductApiHandler(View):
         return JsonResponse(response, safe=False)
 
     def delete(self, request, product_id):
+        response = {"success": False}
         product = Products.objects.get(id=product_id)
-        product.delete()
+
+        carts = Carts.objects.filter(product_id=product_id).all()
+
+        if not carts:
+            product.delete()
+            response["success"] = True
+            response["message"] = "Entity deleted."
+            return JsonResponse(response, safe=False)
+
+        response["message"] = "The entity could not be deleted. Please check whether the product you want to delete is in active carts."
         return JsonResponse(True, safe=False)
+
+
+class ProductListApiHandler(View):
+    def get(self, response):
+        response = {}
+        products = Products.objects.all()
+        products_serializer = ProductSerializer(products, many=True)
+
+        if products:
+            response['products'] = products_serializer.data
+            response['success'] = True
+            return JsonResponse(response, safe=False)
+
+        response['message'] = 'Entities not found.'
+        response["success"] = False
+        return JsonResponse(response, safe=False)
