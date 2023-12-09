@@ -23,7 +23,7 @@ class OrderApiHandler(View):
         response['success'] = True
         response['order'] = order_serialize.data
 
-        return JsonResponse(response)
+        return JsonResponse(response, safe=False)
 
     def post(self, request):
         response = {'success': False}
@@ -33,19 +33,19 @@ class OrderApiHandler(View):
         order_serializer = OrderPostSerializer(data=order_data)
         if not order_serializer.is_valid():
             response['message'] = 'Parameters not valid.'
-            return JsonResponse(response, safe=False)
+            return JsonResponse(response, safe=False, status=400)
 
         product = Products.objects.filter(id=order_data["product_id"]).first()
 
         if not product:
             response['message'] = 'Product not found.'
-            return JsonResponse(response, safe=False)
+            return JsonResponse(response, safe=False, status=400)
 
         cart = Carts.objects.filter(id=order_data["cart_id"]).first()
 
         if not cart:
             response['message'] = 'Cart not found.'
-            return JsonResponse(response, safe=False)
+            return JsonResponse(response, safe=False, status=400)
 
         price = (int(order_data["amount"])) * (product.price)
 
@@ -110,7 +110,7 @@ class OrderApiHandler(View):
             response["message"] = "Order was not found."
             response["success"] = False
             return JsonResponse(response, safe=False, status=400)
-        
+
         cart = Carts.objects.filter(id=order.cart.id).first()
         cart.total = cart.total - order.price
         cart.save()

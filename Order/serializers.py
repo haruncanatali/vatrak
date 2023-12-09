@@ -34,3 +34,14 @@ class OrdersForCartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Orders
         fields = ('id', 'date', 'amount', 'price', 'product')
+
+
+class OrdersForReportSerializer(serializers.ModelSerializer):
+    product = serializers.SerializerMethodField()
+
+    def get_product(self, obj):
+        return obj.product.serialize_for_report()
+
+    class Meta:
+        model = Orders
+        fields = ('id', 'date', 'amount', 'price', 'product')

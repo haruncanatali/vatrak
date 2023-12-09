@@ -2,10 +2,10 @@ from django.http import JsonResponse
 from django.views import View
 from django.db.models import Prefetch
 from Cart.models import Carts
-from Cart.serializers import CartSerializer, CartPostSerializer, CartPutSerializer
+from Cart.serializers import CartSerializer, CartPostSerializer, CartPutSerializer, CartForReportSerializer
 from Device.serializers import DeviceSerializer
 from Device.models import Devices
-from Report.models import Reports
+from Report.models import Reports, CashReports
 from Order.models import Orders
 import json
 
@@ -26,7 +26,7 @@ class CartApiHandler(View):
         response['cart'] = cart_serialize.data
         response['success'] = True
 
-        return JsonResponse(response)
+        return JsonResponse(response, safe=False)
 
     def post(self, request):
         response = {}
@@ -36,17 +36,18 @@ class CartApiHandler(View):
         device = Devices.objects.filter(id=cart_data["device_id"]).first()
 
         if not device:
+            response["success"] = False
             response["message"] = "Device not found."
-            return JsonResponse(response, safe=False)
+            return JsonResponse(response, safe=False, status=400)
 
         cart_serializer = CartPostSerializer(data=cart_data)
 
         if not cart_serializer.is_valid():
-            response['success'] = "False"
+            response['success'] = False
             response['message'] = "Request is not valid."
-            return JsonResponse(response, safe=False)
+            return JsonResponse(response, safe=False, status=400)
 
-        Carts.objects.create(total=cart_data["total"], device=device, payment_status=cart_data["payment_status"])
+        Carts.objects.create(total=cart_data["total"], device=device)
 
         response['success'] = True
         return JsonResponse(response, safe=False)
@@ -75,11 +76,10 @@ class CartApiHandler(View):
         if not cart_serializer.is_valid():
             response['success'] = "False"
             response['message'] = "Request is not valid."
-            return JsonResponse(response, safe=False)
+            return JsonResponse(response, safe=False, status=400)
 
         cart.total = cart_data["total"]
         cart.device = device
-        cart.payment_status = cart_data["payment_status"]
 
         cart.save()
 
@@ -108,6 +108,25 @@ class CartApiHandler(View):
         return JsonResponse(response, safe=False)
 
 
+class CartListApiHandler(View):
+    def get(self, request):
+        response = {}
+        carts = Carts.objects.prefetch_related(
+            Prefetch('orders', queryset=Orders.objects.select_related('product'))
+        ).all()
+
+        if not carts:
+            response["success"] = False
+            response["message"] = "Entities not found."
+            return JsonResponse(response, safe=False, status=400)
+
+        carts_serializer = CartSerializer(carts, many=True)
+
+        response["success"] = True
+        response["carts"] = carts_serializer.data
+        return JsonResponse(response, safe=False)
+
+
 class PayingBillsApiHandler(View):
     def put(self, request, cart_id):
         response = {}
@@ -121,7 +140,7 @@ class PayingBillsApiHandler(View):
             response['message'] = 'Entity was not found.'
             return JsonResponse(response, safe=False, status=400)
 
-        cart_serialize = CartSerializer(cart, many=False).data
+        cart_serialize = CartForReportSerializer(cart, many=False).data
 
         device = Devices.objects.filter(id=cart_serialize["device_id"]).first()
 
@@ -148,15 +167,22 @@ class PayingBillsApiHandler(View):
                 product_price=order["product"]["price"],
                 amount=order["amount"],
                 price=order["price"],
-                order_date=order["date"]
+                order_date=order["date"],
+                category_id=order["product"]["category_id"],
+                category_name=order["product"]["category_name"]
             )
             report.save()
+
+        cash_report = CashReports.objects.create(
+            device_id=device_serialize["id"],
+            device_name=device_serialize["name"],
+            total=cart_serialize["total"]
+        )
+        cash_report.save()
 
         Orders.objects.filter(cart_id=cart_id).delete()
 
         cart.total = 0.0
-        cart.payment_status = True
-
         cart.save()
 
         response["success"] = True
