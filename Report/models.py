@@ -21,3 +21,10 @@ class CashReports(models.Model):
     device_id = models.BigIntegerField()
     device_name = models.CharField(max_length=100)
     total = models.DecimalField(decimal_places=2, max_digits=10)
+
+
+class BatteryReports(models.Model):
+    date = models.DateTimeField(default=datetime.now())
+    entry = models.BooleanField()
+    device_id = models.BigIntegerField()
+    battery = models.IntegerField()

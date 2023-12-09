@@ -5,7 +5,7 @@ from Cart.models import Carts
 from Cart.serializers import CartSerializer, CartPostSerializer, CartPutSerializer, CartForReportSerializer
 from Device.serializers import DeviceSerializer
 from Device.models import Devices
-from Report.models import Reports, CashReports
+from Report.models import Reports, CashReports, BatteryReports
 from Order.models import Orders
 import json
 
@@ -172,6 +172,14 @@ class PayingBillsApiHandler(View):
                 category_name=order["product"]["category_name"]
             )
             report.save()
+
+        battery_report = BatteryReports.objects.create(
+            entry=False,
+            device_id=cart_serialize["device_id"],
+            battery=int(device_serialize["battery"]) - 5
+        )
+
+        battery_report.save()
 
         cash_report = CashReports.objects.create(
             device_id=device_serialize["id"],

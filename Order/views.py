@@ -5,6 +5,8 @@ from Product.models import Products
 from Cart.models import Carts
 from Order.models import Orders
 from Order.serializers import OrderSerializer, OrderPostSerializer, OrderPutSerializer
+from Order.utils import get_order_count_in_cart
+from Report.models import BatteryReports
 
 
 class OrderApiHandler(View):
@@ -47,6 +49,8 @@ class OrderApiHandler(View):
             response['message'] = 'Cart not found.'
             return JsonResponse(response, safe=False, status=400)
 
+        order_count = get_order_count_in_cart(order_data["cart_id"])
+
         price = (int(order_data["amount"])) * (product.price)
 
         cart.total = cart.total + price
@@ -54,6 +58,14 @@ class OrderApiHandler(View):
         cart.save()
 
         Orders.objects.create(date=order_data["date"], product=product, cart=cart, amount=int(order_data["amount"]), price=price)
+
+        if order_count == 0:
+            battery_report = BatteryReports.objects.create(
+                entry=True,
+                device_id=cart.device.id,
+                battery=cart.device.battery
+            )
+            battery_report.save()
 
         response['success'] = True
         return JsonResponse(response, safe=False)
