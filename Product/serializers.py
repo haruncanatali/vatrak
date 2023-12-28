@@ -17,6 +17,17 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'price', 'photo', 'category')
 
 
+class ProductByCategoryReportSerializer(serializers.ModelSerializer):
+    category = serializers.SerializerMethodField()
+
+    def get_category(self, obj):
+        return obj.category.name
+
+    class Meta:
+        model = Products
+        fields = ('name', 'price', 'category')
+
+
 class ProductPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Products
